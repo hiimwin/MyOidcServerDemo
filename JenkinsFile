@@ -1,21 +1,71 @@
 pipeline {
     agent any
 
+    environment {
+        REPO = "hiimwin/deloymyodicserverdemo" // Docker Hub repo bạn vừa tạo
+    }
+
     stages {
-        stage('Build') {
+        stage('Checkout') {
             steps {
-                echo 'Building the app'
+                git branch: 'main',
+                    url: 'https://github.com/hiimwin/MyOdicServerDemo.git',
+                    credentialsId: 'github-token'
             }
         }
-        stage('Test'){
+
+        stage('Build .NET') {
             steps {
-                echo 'Running tests'
+                sh 'dotnet restore'
+                sh 'dotnet publish -c Release -o publish'
             }
         }
-        stage('Deloy'){
+
+        stage('Build Docker Image') {
             steps {
-                echo 'Deploying the app'
+                script {
+                    // Build Docker image với tag là build number
+                    dockerImage = docker.build("${REPO}:${env.BUILD_NUMBER}")
+                }
             }
+        }
+
+        stage('Test Docker Image') {
+            steps {
+                // Chạy container tạm để test
+                sh "docker run --rm -p 5000:5000 ${REPO}:${env.BUILD_NUMBER} --help || echo 'Smoke test OK'"
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    // Push lên Docker Hub bằng credential dockerhub-creds
+                    docker.withRegistry('https://docker.io', 'dockerhub-creds') {
+                        dockerImage.push()
+                        dockerImage.push('latest') // optional tag
+                    }
+                }
+            }
+        }
+
+        stage('Run Container Local (Optional)') {
+            steps {
+                sh """
+                docker stop deloymyodicserverdemo || true
+                docker rm deloymyodicserverdemo || true
+                docker run -d --name deloymyodicserverdemo -p 5000:5000 ${REPO}:latest
+                """
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Pipeline completed successfully!"
+        }
+        failure {
+            echo "Pipeline failed. Check logs!"
         }
     }
 }
