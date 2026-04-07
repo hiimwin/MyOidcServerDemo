@@ -2,15 +2,13 @@ pipeline {
     agent any
 
     environment {
-        REPO = "hiimwin/deloymyodicserverdemo" // Docker Hub repo bạn vừa tạo
+        REPO = "hiimwin/deloymyodicserverdemo"
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main',
-                    url: 'https://github.com/hiimwin/MyOdicServerDemo.git',
-                    credentialsId: 'github-token'
+                checkout scm
             }
         }
 
@@ -24,48 +22,43 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Build Docker image với tag là build number
-                    dockerImage = docker.build("${REPO}:${env.BUILD_NUMBER}")
+                    // Tag theo branch và build number
+                    def branchName = env.BRANCH_NAME.replaceAll('/', '-')
+                    dockerImage = docker.build("${REPO}:${branchName}-${env.BUILD_NUMBER}")
                 }
             }
         }
 
         stage('Test Docker Image') {
             steps {
-                // Chạy container tạm để test
-                sh "docker run --rm -p 5000:5000 ${REPO}:${env.BUILD_NUMBER} --help || echo 'Smoke test OK'"
-            }
-        }
-
-        stage('Push Docker Image') {
-            steps {
                 script {
-                    // Push lên Docker Hub bằng credential dockerhub-creds
-                    docker.withRegistry('https://docker.io', 'dockerhub-creds') {
-                        dockerImage.push()
-                        dockerImage.push('latest') // optional tag
-                    }
+                    def branchName = env.BRANCH_NAME.replaceAll('/', '-')
+                    sh "docker run --rm -p 5000:5000 ${REPO}:${branchName}-${env.BUILD_NUMBER} --help || echo 'Smoke test OK'"
                 }
             }
         }
 
-        stage('Run Container Local (Optional)') {
+        stage('Optional Push Docker Image') {
+            when {
+                expression { env.BRANCH_NAME == 'master' }
+            }
             steps {
-                sh """
-                docker stop deloymyodicserverdemo || true
-                docker rm deloymyodicserverdemo || true
-                docker run -d --name deloymyodicserverdemo -p 5000:5000 ${REPO}:latest
-                """
+                script {
+                    docker.withRegistry('https://docker.io', 'dockerhub-creds') {
+                        dockerImage.push()
+                        dockerImage.push('latest')
+                    }
+                }
             }
         }
     }
 
     post {
         success {
-            echo "Pipeline completed successfully!"
+            echo "Branch ${env.BRANCH_NAME} built and tested successfully!"
         }
         failure {
-            echo "Pipeline failed. Check logs!"
+            echo "Branch ${env.BRANCH_NAME} failed. Check logs!"
         }
     }
 }
