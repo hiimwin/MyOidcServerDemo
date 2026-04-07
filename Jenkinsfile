@@ -31,15 +31,19 @@ pipeline {
         }
 
         stage('Run Integration Test') {
-            steps {
-                sh """
-                docker-compose down || true
-                docker-compose up -d
-                sleep 10
-                docker ps
-                """
-            }
-        }
+    		steps {
+        		sh """
+        		docker rm -f api || true
+        		docker rm -f client || true
+
+        		docker run -d -p 5000:5000 --name api ${REPO_API}:${env.BUILD_NUMBER}
+        		docker run -d -p 5001:5001 --name client ${REPO_CLIENT}:${env.BUILD_NUMBER}
+
+        		sleep 10
+        		docker ps
+        		"""
+    			}
+	}
 
         stage('Push Images') {
             when { branch 'master' }
