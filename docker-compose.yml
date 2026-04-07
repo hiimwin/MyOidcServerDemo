@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    container_name: oidc-api
+    ports:
+      - "5000:5000"
+
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    container_name: oidc-client
+    ports:
+      - "5001:5001"
+    depends_on:
+      - api

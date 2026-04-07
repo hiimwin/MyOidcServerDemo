@@ -2,51 +2,55 @@ pipeline {
     agent any
 
     environment {
-        REPO = "hiimwin/deloymyodicserverdemo"
+        REPO_API = "hiimwin/oidc-api"
+        REPO_CLIENT = "hiimwin/oidc-client"
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Build .NET') {
-            steps {
-                sh 'dotnet restore'
-                sh 'dotnet publish -c Release -o publish'
-            }
-        }
-
-        stage('Build Docker Image') {
+        stage('Build API Image') {
             steps {
                 script {
-                    // Tag theo branch và build number
-                    def branchName = env.BRANCH_NAME.replaceAll('/', '-')
-                    dockerImage = docker.build("${REPO}:${branchName}-${env.BUILD_NUMBER}")
+                    apiImage = docker.build("${REPO_API}:${env.BUILD_NUMBER}", "-f Dockerfile.server .")
                 }
             }
         }
 
-        stage('Test Docker Image') {
+        stage('Build Client Image') {
             steps {
                 script {
-                    def branchName = env.BRANCH_NAME.replaceAll('/', '-')
-                    sh "docker run --rm -p 5000:5000 ${REPO}:${branchName}-${env.BUILD_NUMBER} --help || echo 'Smoke test OK'"
+                    clientImage = docker.build("${REPO_CLIENT}:${env.BUILD_NUMBER}", "-f Dockerfile.client .")
                 }
             }
         }
 
-        stage('Optional Push Docker Image') {
-            when {
-                expression { env.BRANCH_NAME == 'master' }
+        stage('Run Integration Test') {
+            steps {
+                sh """
+                docker-compose down || true
+                docker-compose up -d
+                sleep 10
+                docker ps
+                """
             }
+        }
+
+        stage('Push Images') {
+            when { branch 'master' }
             steps {
                 script {
                     docker.withRegistry('https://docker.io', 'dockerhub-creds') {
-                        dockerImage.push()
-                        dockerImage.push('latest')
+                        apiImage.push()
+                        apiImage.push('latest')
+
+                        clientImage.push()
+                        clientImage.push('latest')
                     }
                 }
             }
@@ -54,11 +58,8 @@ pipeline {
     }
 
     post {
-        success {
-            echo "Branch ${env.BRANCH_NAME} built and tested successfully!"
-        }
-        failure {
-            echo "Branch ${env.BRANCH_NAME} failed. Check logs!"
+        always {
+            sh 'docker-compose down || true'
         }
     }
 }
