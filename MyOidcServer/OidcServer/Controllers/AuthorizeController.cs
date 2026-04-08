@@ -17,8 +17,8 @@ namespace OidcServer.Controllers
         private readonly ICodeItemRepository codeRepository;
         private readonly IUserRepository userRepository;
 
-        public AuthorizeController(IUserRepository userRepository, 
-            ICodeItemRepository codeRepository, 
+        public AuthorizeController(IUserRepository userRepository,
+            ICodeItemRepository codeRepository,
             TokenIssuingOptions tokenIssuingOptions,
             JsonWebKey jsonWebKey)
         {
@@ -84,7 +84,7 @@ namespace OidcServer.Controllers
         [HttpPost]
         public IActionResult ReturnTokens(string grant_type, string code, string redirect_uri)
         {
-            if(grant_type != "authorization_code")
+            if (grant_type != "authorization_code")
             {
                 return BadRequest();
             }
