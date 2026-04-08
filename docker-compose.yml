@@ -1,7 +1,6 @@
-
 services:
   oidc-server:
-    image: oidc-server-fix_fix-cicd-v2:latest
+    image: oidc-server-${BRANCH_SUFFIX}:latest
     container_name: oidc-server
     ports:
       - "8081:80"
@@ -9,7 +8,7 @@ services:
       - branch_net
 
   oidc-client:
-    image: oidc-client-fix_fix-cicd-v2:latest
+    image: oidc-client-${BRANCH_SUFFIX}:latest
     container_name: oidc-client
     depends_on:
       - oidc-server
@@ -18,4 +17,4 @@ services:
 
 networks:
   branch_net:
-    driver: bridge
+    external: true

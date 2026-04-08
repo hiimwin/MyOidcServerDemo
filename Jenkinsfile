@@ -2,7 +2,8 @@ pipeline {
     agent any
 
     environment {
-        BRANCH_SUFFIX = "${env.BRANCH_NAME.replaceAll('/', '_')}"
+        // Safe branch suffix: chỉ chữ + số + '_', tối đa 63 ký tự
+        BRANCH_SUFFIX = "${env.BRANCH_NAME.replaceAll(/[^a-zA-Z0-9]/, '_')}"
     }
 
     stages {
@@ -54,8 +55,18 @@ pipeline {
         stage('Start Containers for Test') {
             steps {
                 script {
-                    sh "docker network create net-${BRANCH_SUFFIX} || true"
-                    sh "docker-compose -f docker-compose.yml up -d"
+                    // Tạo network an toàn
+                    def networkName = "myoidc_${BRANCH_SUFFIX}"
+                    if(networkName.length() > 63) {
+                        networkName = networkName.substring(0,63)
+                    }
+                    sh "docker network create ${networkName} || true"
+
+                    // Export network để docker-compose dùng
+                    withEnv(["BRANCH_SUFFIX=${BRANCH_SUFFIX}"]) {
+                        sh "docker-compose -f docker-compose.yml up -d"
+                    }
+
                     sh "sleep 5"
                 }
             }
@@ -65,9 +76,11 @@ pipeline {
             steps {
                 script {
                     echo "Running basic smoke tests..."
-                    sh """
-                    docker run --rm --network net-${BRANCH_SUFFIX} curlimages/curl:latest -f http://oidc-server:80/.well-known/openid-configuration
-                    """
+                    def networkName = "myoidc_${BRANCH_SUFFIX}"
+                    if(networkName.length() > 63) {
+                        networkName = networkName.substring(0,63)
+                    }
+                    sh "docker run --rm --network ${networkName} curlimages/curl:latest -f http://oidc-server:80/.well-known/openid-configuration"
                 }
             }
         }
@@ -78,7 +91,11 @@ pipeline {
             dir("${env.WORKSPACE}") {
                 echo "Cleaning up containers, network, and dangling images..."
                 sh "docker-compose -f docker-compose.yml down -v"
-                sh "docker network rm net-${BRANCH_SUFFIX} || true"
+                def networkName = "myoidc_${BRANCH_SUFFIX}"
+                if(networkName.length() > 63) {
+                    networkName = networkName.substring(0,63)
+                }
+                sh "docker network rm ${networkName} || true"
                 sh "docker system prune -f"
             }
         }
