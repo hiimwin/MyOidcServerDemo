@@ -34,7 +34,7 @@ namespace OidcServer
             {
                 builder.WebHost.ConfigureKestrel(options =>
                 {
-                    options.ListenAnyIP(port); // Docker/CI sẽ set PORT cố định
+                    options.ListenAnyIP(port); // Docker/CI set PORT cố định
                 });
             }
 
