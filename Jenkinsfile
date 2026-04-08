@@ -1,17 +1,18 @@
 pipeline {
     agent any
-    environment {
-        DOCKER_NETWORK = "oidc-net"
-        API_PORT = "5000"
-        CLIENT_PORT = "8080"
-    }
+
     options {
         skipDefaultCheckout()
         timeout(time: 30, unit: 'MINUTES')
-        ansiColor('xterm')
     }
+
+    environment {
+        DOCKER_REGISTRY = 'docker.io'
+        DOCKER_CREDENTIALS = 'dockerhub-creds'
+    }
+
     stages {
-        stage('Checkout SCM') {
+        stage('Checkout') {
             steps {
                 checkout scm
             }
@@ -19,69 +20,48 @@ pipeline {
 
         stage('Check Docker') {
             steps {
-                script {
-                    sh 'docker --version'
-                    sh 'docker-compose --version'
-                }
+                sh 'docker --version'
+                sh 'docker-compose --version'
             }
         }
 
         stage('Build & Start Docker Compose') {
             steps {
-                dir("${WORKSPACE}") {
-                    script {
-                        echo "\033[34mStopping old containers...\033[0m"
-                        sh "docker-compose down -v || true"
-
-                        echo "\033[34mBuilding containers...\033[0m"
-                        sh "docker-compose build"
-
-                        echo "\033[34mStarting containers...\033[0m"
-                        sh "docker-compose up -d"
-                    }
+                dir('MyOidcServerDemo') {
+                    sh '''
+                        echo "Stopping old containers..."
+                        docker-compose down -v
+                        echo "Building containers..."
+                        docker-compose build
+                        echo "Starting containers..."
+                        docker-compose up -d
+                    '''
                 }
             }
         }
 
         stage('Wait for API') {
             steps {
-                script {
-                    echo "Waiting for API on port ${API_PORT}..."
-                    retry(10) {
-                        sh """
-                        curl --fail http://localhost:${API_PORT}/health || exit 1
-                        """
-                    }
-                }
+                sh '''
+                    echo "Waiting for API to be ready..."
+                    sleep 10
+                '''
             }
         }
 
         stage('Test Client') {
             steps {
-                script {
-                    echo "Testing client..."
-                    retry(5) {
-                        sh """
-                        curl --fail http://localhost:${CLIENT_PORT}/ || exit 1
-                        """
-                    }
-                }
+                sh 'curl -f http://localhost:5000 || exit 1'
             }
         }
 
-        stage('Push Docker Images') {
+        stage('Push Docker Images (Master Only)') {
             when {
-                expression { env.BRANCH_NAME == 'master' || env.BRANCH_NAME == 'dev' }
+                branch 'master'
             }
             steps {
-                script {
-                    docker.withRegistry('https://docker.io', 'dockerhub-creds') {
-                        sh "docker build -t myuser/oidc-api:${BRANCH_NAME} -f Dockerfile.server ."
-                        sh "docker push myuser/oidc-api:${BRANCH_NAME}"
-
-                        sh "docker build -t myuser/oidc-client:${BRANCH_NAME} -f Dockerfile.client ."
-                        sh "docker push myuser/oidc-client:${BRANCH_NAME}"
-                    }
+                withDockerRegistry([ credentialsId: env.DOCKER_CREDENTIALS, url: env.DOCKER_REGISTRY ]) {
+                    sh 'docker-compose push'
                 }
             }
         }
@@ -89,17 +69,11 @@ pipeline {
 
     post {
         always {
-            echo "\033[34mCleaning up containers...\033[0m"
-            dir("${WORKSPACE}") {
-                sh "docker-compose down -v || true"
-                sh "docker-compose logs || true"
+            echo 'Cleaning up containers...'
+            dir('MyOidcServerDemo') {
+                sh 'docker-compose down -v || true'
+                sh 'docker-compose logs || true'
             }
-        }
-        success {
-            echo "\033[32mCI/CD SUCCESS!\033[0m"
-        }
-        failure {
-            echo "\033[31mCI/CD FAILED!\033[0m"
         }
     }
 }
