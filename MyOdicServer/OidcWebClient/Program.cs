@@ -13,6 +13,13 @@ namespace OidcWebClient
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
+
+            // Load config theo môi trường
+            builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                                 .AddJsonFile($"appsettings.{env}.json", optional: true, reloadOnChange: true)
+                                 .AddEnvironmentVariables();
+
             if (builder.Environment.IsDevelopment())
             {
                 IdentityModelEventSource.ShowPII = true;
@@ -36,29 +43,48 @@ namespace OidcWebClient
                 options.ClientSecret = builder.Configuration["OpenIDConnectSettings:ClientSecret"];
                 options.ResponseType = OpenIdConnectResponseType.Code;
                 options.SaveTokens = true;
+                options.RequireHttpsMetadata = false;
 
                 options.TokenValidationParameters.ValidateIssuerSigningKey = false;
-                options.TokenValidationParameters.SignatureValidator = delegate (string token, TokenValidationParameters validationParameters) 
-                { 
-                    return new Microsoft.IdentityModel.JsonWebTokens.JsonWebToken(token); 
+                options.TokenValidationParameters.SignatureValidator = delegate (string token, TokenValidationParameters validationParameters)
+                {
+                    return new Microsoft.IdentityModel.JsonWebTokens.JsonWebToken(token);
                 };
+            });
+
+            // 👇 Configure API URL
+            var apiUrl = builder.Configuration["ApiSettings:BaseUrl"];
+            if (string.IsNullOrEmpty(apiUrl))
+            {
+                throw new Exception("ApiSettings:BaseUrl chưa được set!");
+            }
+
+            builder.Services.AddHttpClient("ApiClient", client =>
+            {
+                client.BaseAddress = new Uri(apiUrl);
+            });
+
+            // Expose port 8080
+            builder.WebHost.ConfigureKestrel(options =>
+            {
+                options.ListenAnyIP(8080);
             });
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())
             {
                 app.UseExceptionHandler("/Home/Error");
-                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
 
-            app.UseHttpsRedirection();
+            if (app.Environment.IsDevelopment())
+            {
+                app.UseHttpsRedirection();
+            }
+
             app.UseStaticFiles();
-
             app.UseRouting();
-
             app.UseAuthentication();
             app.UseAuthorization();
 

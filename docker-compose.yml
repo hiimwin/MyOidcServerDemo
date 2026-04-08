@@ -1,0 +1,27 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    container_name: oidc-api
+    ports:
+      - "5000:8080"  # host 5000 -> container 8080
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Docker
+      - ASPNETCORE_URLS=http://+:8080
+    networks:
+      - oidc-net
+
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    container_name: oidc-client
+    ports:
+      - "5001:8080"  # host 5001 -> container 8080
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Docker
+    depends_on:
+      - api
+    networks:
+      - oidc-net
