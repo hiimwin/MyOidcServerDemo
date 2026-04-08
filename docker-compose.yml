@@ -1,9 +1,9 @@
-version: "3.9"
 services:
   server:
     build:
       context: .
       dockerfile: Dockerfile.server
+    image: oidc-server
     container_name: oidc-server
     ports:
       - "5000:5000"
@@ -14,11 +14,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.client
+    image: oidc-client
     container_name: oidc-client
     ports:
       - "5001:5001"
     environment:
       - DOTNET_ENVIRONMENT=Docker
-      - SERVER_URL=http://server:5000  # server base URL trong docker network
+      - SERVER_URL=http://server:5000
     depends_on:
       - server
