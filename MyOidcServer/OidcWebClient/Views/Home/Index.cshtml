@@ -1,0 +1,26 @@
+﻿@{
+    var user = Context.User;
+}
+<div class="container text-center mt-5">
+
+    <h2>Client Home</h2>
+
+    @if (user.Identity.IsAuthenticated)
+    {
+        <p class="text-success">
+            👋 Hello, <strong>@user.Identity.Name</strong>
+        </p>
+
+        <a href="/Profile" class="btn btn-primary">Profile</a>
+        <a href="/logout" class="btn btn-danger">Logout</a>
+    }
+    else
+    {
+        <p class="text-muted">No user logged in</p>
+
+        <button onclick="window.location.href='/Profile'" class="btn btn-primary">
+            Profile
+        </button>
+    }
+
+</div>

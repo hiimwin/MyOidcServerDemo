@@ -1,0 +1,104 @@
+﻿@model AuthenticationRequestModel
+@{
+    int i;
+}
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger">
+        @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+        {
+            <div>@error.ErrorMessage</div>
+        }
+    </div>
+}
+<div class="container d-flex align-items-center justify-content-center" style="min-height: 100vh;">
+    <div class="col-md-6 col-lg-5">
+
+        <div class="card shadow-lg border-0 rounded-4">
+            <div class="card-body p-4">
+
+                <!-- Header -->
+                <div class="text-center mb-4">
+                    <h3 class="fw-bold">Authorize Application</h3>
+                    <p class="text-muted small mb-0">
+                        Choose an account and permissions to continue
+                    </p>
+                </div>
+
+                <!-- App Info -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Client</label>
+                    <div class="form-control bg-light">@Model.ClientId</div>
+                </div>
+
+                <form asp-controller="Authorize" asp-action="Authorize" method="post">
+                @* <form action="authorize/authorize" method="post"> *@
+
+                    <!-- User -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">User</label>
+                        <input type="text" name="user" class="form-control" placeholder="Enter username..." required />
+                    </div>
+
+                    <!-- Scopes -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Permissions</label>
+                        <div class="border rounded-3 p-3 bg-light">
+
+                            @{
+                                i = 1;
+                            }
+
+                            @foreach (var scope in Model.Scope.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                            {
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox"
+                                           value="@scope"
+                                           id="scope-@i"
+                                           name="scopes"
+                                           checked>
+                                    <label class="form-check-label" for="scope-@i">
+                                        @scope
+                                    </label>
+                                </div>
+                                i++;
+                            }
+
+                        </div>
+                    </div>
+
+                    <!-- Hidden fields -->
+                    <input type="hidden" name="client_id" value="@Model.ClientId" />
+                    <input type="hidden" name="redirect_uri" value="@Model.RedirectUri" />
+                    <input type="hidden" name="response_type" value="@Model.ResponseType" />
+                    <input type="hidden" name="scope" value="@Model.Scope" />
+                    <input type="hidden" name="code_challenge" value="@Model.CodeChallenge" />
+                    <input type="hidden" name="code_challenge_method" value="@Model.CodeChallengeMethod" />
+                    <input type="hidden" name="response_mode" value="@Model.ResponseMode" />
+                    <input type="hidden" name="nonce" value="@Model.Nonce" />
+                    <input type="hidden" name="state" value="@Model.State" />
+
+                    <!-- Buttons -->
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            Authorize
+                        </button>
+
+                        <a href="#" class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-3">
+            <small class="text-muted">
+                You are granting access to your account
+            </small>
+        </div>
+
+    </div>
+</div>

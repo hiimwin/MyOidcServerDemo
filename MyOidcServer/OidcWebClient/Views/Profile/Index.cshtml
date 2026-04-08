@@ -1,0 +1,66 @@
+﻿@using System.Security.Claims
+
+@{
+    var user = Context.User;
+}
+
+<div class="container mt-5">
+
+    <div class="card mx-auto shadow-sm" style="max-width: 500px;">
+        <div class="card-body text-center">
+
+            <h3 class="mb-4">User Profile</h3>
+
+            @if (user.Identity.IsAuthenticated)
+            {
+                <!-- Avatar fake -->
+                <div class="mb-3">
+                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
+                         style="width: 70px; height: 70px; font-size: 28px; margin: auto;">
+                        @user.Identity.Name?[0]
+                    </div>
+                </div>
+
+                <!-- Name -->
+                <h4 class="fw-bold">@user.Identity.Name</h4>
+
+                <!-- Info -->
+                <div class="mt-3 text-start">
+
+                    <p>
+                        <strong>User ID:</strong><br />
+                        @user.Identity.Name
+                    </p>
+
+                    <p>
+                        <strong>Authentication:</strong><br />
+                        @user.Identity.AuthenticationType
+                    </p>
+
+                </div>
+
+                <div class="d-grid gap-2 mt-4">
+                    <a href="/" class="btn btn-outline-secondary">
+                        ⬅ Back Home
+                    </a>
+
+                    <a href="/logout" class="btn btn-danger">
+                        🚪 Logout
+                    </a>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-warning">
+                    No user authenticated
+                </div>
+
+                <a href="/Profile" class="btn btn-primary mt-3">
+                    🔐 Go to Profile (Login)
+                </a>
+            }
+
+        </div>
+    </div>
+
+</div>
