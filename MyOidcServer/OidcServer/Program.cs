@@ -20,7 +20,15 @@ namespace OidcServer
 
             // Add services to the container.
             builder.Services.AddControllersWithViews();
-
+            builder.Services.AddCors(options =>
+            {
+                options.AddDefaultPolicy(policy =>
+                {
+                    policy.AllowAnyOrigin()
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
+                });
+            });
             builder.Services.AddSingleton<IUserRepository, InMemoryUserRepository>();
             builder.Services.AddSingleton<ICodeItemRepository, CodeItemRepository>();
 
@@ -53,6 +61,7 @@ namespace OidcServer
 
             app.UseStaticFiles();
             app.UseRouting();
+            app.UseCors();
             app.UseAuthorization();
 
             app.MapGet("/.well-known/openid-configuration",
