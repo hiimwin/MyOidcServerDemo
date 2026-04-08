@@ -1,19 +1,21 @@
-﻿# Stage 1: Build
+﻿# Dockerfile.server
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Copy server project
-COPY MyOidcServer/OidcServer/*.csproj ./ 
+# Copy csproj and restore
+COPY MyOidcServer/OidcServer/*.csproj ./
 RUN dotnet restore
 
-# Copy all server code
+# Copy full server source and publish
 COPY MyOidcServer/OidcServer/ ./
 RUN dotnet publish -c Release -o /app/publish
 
-# Stage 2: Runtime
+# Runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 COPY --from=build /app/publish .
 
+# Use environment config in Docker
+ENV DOTNET_ENVIRONMENT=Docker
 EXPOSE 5000
 ENTRYPOINT ["dotnet", "OidcServer.dll"]

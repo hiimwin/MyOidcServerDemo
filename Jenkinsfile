@@ -1,20 +1,20 @@
 pipeline {
     agent any
-
     options {
         skipDefaultCheckout()
         timeout(time: 30, unit: 'MINUTES')
     }
 
     environment {
-        DOCKER_REGISTRY = 'docker.io'
-        DOCKER_CREDENTIALS = 'dockerhub-creds'
+        REGISTRY = "your-docker-registry.com" // ví dụ: docker.io/hiimwin
+        SERVER_IMAGE = "${REGISTRY}/oidc-server"
+        CLIENT_IMAGE = "${REGISTRY}/oidc-client"
     }
 
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
+                checkout scm // Multi-branch tự chọn nhánh
             }
         }
 
@@ -25,33 +25,25 @@ pipeline {
             }
         }
 
-        stage('Build & Start Docker Compose') {
+        stage('Build Docker Images') {
             steps {
                 dir('MyOidcServerDemo') {
-                    sh '''
-                        echo "Stopping old containers..."
-                        docker-compose down -v
-                        echo "Building containers..."
-                        docker-compose build
-                        echo "Starting containers..."
-                        docker-compose up -d
-                    '''
+                    sh 'docker-compose build'
                 }
             }
         }
 
-        stage('Wait for API') {
+        stage('Start Containers for Test') {
             steps {
-                sh '''
-                    echo "Waiting for API to be ready..."
-                    sleep 10
-                '''
+                dir('MyOidcServerDemo') {
+                    sh 'docker-compose up -d'
+                }
             }
         }
 
-        stage('Test Client') {
+        stage('Test Containers') {
             steps {
-                sh 'curl -f http://localhost:5000 || exit 1'
+                echo 'Optional: Add smoke tests here, e.g., curl http://localhost:5000/.well-known/openid-configuration'
             }
         }
 
@@ -60,8 +52,11 @@ pipeline {
                 branch 'master'
             }
             steps {
-                withDockerRegistry([ credentialsId: env.DOCKER_CREDENTIALS, url: env.DOCKER_REGISTRY ]) {
-                    sh 'docker-compose push'
+                dir('MyOidcServerDemo') {
+                    sh "docker tag oidc-server:latest ${SERVER_IMAGE}:latest"
+                    sh "docker tag oidc-client:latest ${CLIENT_IMAGE}:latest"
+                    sh "docker push ${SERVER_IMAGE}:latest"
+                    sh "docker push ${CLIENT_IMAGE}:latest"
                 }
             }
         }
@@ -71,8 +66,8 @@ pipeline {
         always {
             echo 'Cleaning up containers...'
             dir('MyOidcServerDemo') {
-                sh 'docker-compose down -v || true'
-                sh 'docker-compose logs || true'
+                sh 'docker-compose down -v'
+                sh 'docker-compose logs'
             }
         }
     }
