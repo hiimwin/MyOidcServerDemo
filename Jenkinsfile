@@ -1,18 +1,21 @@
 pipeline {
     agent any
-
     environment {
-        // Docker image production
-        PROD_API_IMAGE = "hiimwin/oidc-api:prod"
-        PROD_CLIENT_IMAGE = "hiimwin/oidc-client:prod"
-        // Docker image dev
-        DEV_API_IMAGE = "hiimwin/oidc-api:dev"
-        DEV_CLIENT_IMAGE = "hiimwin/oidc-client:dev"
-        // Compose project
-        COMPOSE_PROJECT_NAME = "oidc-app"
+        DOCKER_NETWORK = "oidc-net"
+        API_PORT = "5000"
+        CLIENT_PORT = "8080"
     }
-
+    options {
+        skipDefaultCheckout()
+        timeout(time: 30, unit: 'MINUTES')
+        ansiColor('xterm')
+    }
     stages {
+        stage('Checkout SCM') {
+            steps {
+                checkout scm
+            }
+        }
 
         stage('Check Docker') {
             steps {
@@ -23,22 +26,18 @@ pipeline {
             }
         }
 
-        stage('Clone Repository') {
-            steps {
-                checkout scm
-            }
-        }
-
         stage('Build & Start Docker Compose') {
             steps {
-                dir("${env.WORKSPACE}/MyOidcServerDemo") {
+                dir("${WORKSPACE}") {
                     script {
-                        echo "\u001B[34mStopping old containers...\u001B[0m"
-                        sh 'docker-compose down -v || true'
-                        echo "\u001B[34mBuilding containers...\u001B[0m"
-                        sh 'docker-compose build'
-                        echo "\u001B[34mStarting containers...\u001B[0m"
-                        sh 'docker-compose up -d'
+                        echo "\033[34mStopping old containers...\033[0m"
+                        sh "docker-compose down -v || true"
+
+                        echo "\033[34mBuilding containers...\033[0m"
+                        sh "docker-compose build"
+
+                        echo "\033[34mStarting containers...\033[0m"
+                        sh "docker-compose up -d"
                     }
                 }
             }
@@ -47,21 +46,11 @@ pipeline {
         stage('Wait for API') {
             steps {
                 script {
-                    echo "\u001B[33mWaiting for API on localhost:5000...\u001B[0m"
-                    def success = false
-                    for (int i = 1; i <= 12; i++) {
-                        def status = sh(script: "curl -s -o /dev/null -w '%{http_code}' http://localhost:5000", returnStdout: true).trim()
-                        if (status == "200") {
-                            echo "\u001B[32mAPI is up!\u001B[0m"
-                            success = true
-                            break
-                        } else {
-                            echo "\u001B[33mWaiting 5s...\u001B[0m"
-                            sleep 5
-                        }
-                    }
-                    if (!success) {
-                        error("API did not start in time!")
+                    echo "Waiting for API on port ${API_PORT}..."
+                    retry(10) {
+                        sh """
+                        curl --fail http://localhost:${API_PORT}/health || exit 1
+                        """
                     }
                 }
             }
@@ -70,34 +59,28 @@ pipeline {
         stage('Test Client') {
             steps {
                 script {
-                    echo "\u001B[33mTesting Client on localhost:5001...\u001B[0m"
-                    sh 'curl -s http://localhost:5001 || exit 1'
+                    echo "Testing client..."
+                    retry(5) {
+                        sh """
+                        curl --fail http://localhost:${CLIENT_PORT}/ || exit 1
+                        """
+                    }
                 }
             }
         }
 
         stage('Push Docker Images') {
             when {
-                expression { return env.BRANCH_NAME == 'master' || env.BRANCH_NAME == 'dev' }
+                expression { env.BRANCH_NAME == 'master' || env.BRANCH_NAME == 'dev' }
             }
             steps {
-                dir("${env.WORKSPACE}/MyOidcServerDemo") {
-                    script {
-                        def apiImage = (env.BRANCH_NAME == 'master') ? PROD_API_IMAGE : DEV_API_IMAGE
-                        def clientImage = (env.BRANCH_NAME == 'master') ? PROD_CLIENT_IMAGE : DEV_CLIENT_IMAGE
+                script {
+                    docker.withRegistry('https://docker.io', 'dockerhub-creds') {
+                        sh "docker build -t myuser/oidc-api:${BRANCH_NAME} -f Dockerfile.server ."
+                        sh "docker push myuser/oidc-api:${BRANCH_NAME}"
 
-                        echo "\u001B[34mPushing Docker images for branch: ${env.BRANCH_NAME}\u001B[0m"
-                        script {
-                            docker.withRegistry('https://docker.io', 'dockerhub-creds') {
-                                sh """
-                                    docker-compose build
-                                    docker tag oidc-app_api:latest ${apiImage}
-                                    docker tag oidc-app_client:latest ${clientImage}
-                                    docker push ${apiImage}
-                                    docker push ${clientImage}
-                                """
-                            }
-                        }
+                        sh "docker build -t myuser/oidc-client:${BRANCH_NAME} -f Dockerfile.client ."
+                        sh "docker push myuser/oidc-client:${BRANCH_NAME}"
                     }
                 }
             }
@@ -105,20 +88,18 @@ pipeline {
     }
 
     post {
+        always {
+            echo "\033[34mCleaning up containers...\033[0m"
+            dir("${WORKSPACE}") {
+                sh "docker-compose down -v || true"
+                sh "docker-compose logs || true"
+            }
+        }
         success {
-            echo "\u001B[32mCI/CD SUCCESS - App is running\u001B[0m"
+            echo "\033[32mCI/CD SUCCESS!\033[0m"
         }
         failure {
-            echo "\u001B[31mCI/CD FAILED - Showing logs...\u001B[0m"
-            dir("${env.WORKSPACE}/MyOidcServerDemo") {
-                sh 'docker-compose logs || true'
-            }
-        }
-        always {
-            echo "\u001B[34mCleaning up containers...\u001B[0m"
-            dir("${env.WORKSPACE}/MyOidcServerDemo") {
-                sh 'docker-compose down -v || true'
-            }
+            echo "\033[31mCI/CD FAILED!\033[0m"
         }
     }
 }
