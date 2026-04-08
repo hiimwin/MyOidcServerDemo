@@ -36,6 +36,7 @@ namespace OidcWebClient
                 options.ClientSecret = builder.Configuration["OpenIDConnectSettings:ClientSecret"];
                 options.ResponseType = OpenIdConnectResponseType.Code;
                 options.SaveTokens = true;
+                options.RequireHttpsMetadata = false;
 
                 options.TokenValidationParameters.ValidateIssuerSigningKey = false;
                 options.TokenValidationParameters.SignatureValidator = delegate (string token, TokenValidationParameters validationParameters) 
@@ -50,11 +51,14 @@ namespace OidcWebClient
             if (!app.Environment.IsDevelopment())
             {
                 app.UseExceptionHandler("/Home/Error");
-                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
 
-            app.UseHttpsRedirection();
+            // 👇 chỉ bật khi dev
+            if (app.Environment.IsDevelopment())
+            {
+                app.UseHttpsRedirection();
+            }
             app.UseStaticFiles();
 
             app.UseRouting();

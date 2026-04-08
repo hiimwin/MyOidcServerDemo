@@ -66,9 +66,18 @@ namespace OidcServer.Controllers
                 RedirectUri = authenticationRequest.RedirectUri
             };
 
+            var allowedRedirectUris = new List<string>
+            {
+                "http://localhost:5001/signin-oidc",     // Docker
+                "https://localhost:7219/signin-oidc"     // Local
+            };
+
+            if (!allowedRedirectUris.Contains(authenticationRequest.RedirectUri))
+            {
+                return BadRequest("Invalid redirect_uri");
+            }
             var redirectUrl = $"{authenticationRequest.RedirectUri}?code={code}&state={authenticationRequest.State}";
             return Redirect(redirectUrl);
-            //return View("SubmitForm", model);
         }
 
         [Route("oauth/token")]
