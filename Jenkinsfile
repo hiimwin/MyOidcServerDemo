@@ -54,11 +54,10 @@ pipeline {
         stage('Create Network') {
             steps {
                 script {
-                    def networkName = "myoidc_${BRANCH_SUFFIX}"
-                    if (networkName.length() > 63) {
-                        networkName = networkName[0..62]
-                    }
+                    def networkName = "branch_net-${BRANCH_SUFFIX}"
                     sh "docker network create ${networkName} || true"
+                    env.NETWORK_NAME = networkName
+                    echo "Network created: ${networkName}"
                 }
             }
         }
@@ -66,10 +65,6 @@ pipeline {
         stage('Start Containers for Test') {
             steps {
                 script {
-                    def networkName = "myoidc_${BRANCH_SUFFIX}"
-                    if (networkName.length() > 63) {
-                        networkName = networkName[0..62]
-                    }
                     sh "docker-compose -f docker-compose.yml up -d"
                     sh "sleep 5"
                 }
@@ -80,12 +75,8 @@ pipeline {
             steps {
                 script {
                     echo "Running basic smoke tests..."
-                    def networkName = "myoidc_${BRANCH_SUFFIX}"
-                    if (networkName.length() > 63) {
-                        networkName = networkName[0..62]
-                    }
                     sh """
-                    docker run --rm --network ${networkName} curlimages/curl:latest -f http://oidc-server:80/.well-known/openid-configuration
+                    docker run --rm --network ${env.NETWORK_NAME} curlimages/curl:latest -f http://oidc-server:80/.well-known/openid-configuration
                     """
                 }
             }
@@ -97,13 +88,7 @@ pipeline {
             dir("${env.WORKSPACE}") {
                 echo "Cleaning up containers, network, and dangling images..."
                 sh "docker-compose -f docker-compose.yml down -v"
-                script {
-                    def networkName = "myoidc_${BRANCH_SUFFIX}"
-                    if (networkName.length() > 63) {
-                        networkName = networkName[0..62]
-                    }
-                    sh "docker network rm ${networkName} || true"
-                }
+                sh "docker network rm ${env.NETWORK_NAME} || true"
                 sh "docker system prune -f"
             }
         }
