@@ -1,9 +1,10 @@
+
 services:
   oidc-server:
     image: oidc-server-fix_fix-cicd-v2:latest
     container_name: oidc-server
     ports:
-      - "80:80"
+      - "8081:80"
     networks:
       - branch_net
 

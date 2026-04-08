@@ -30,7 +30,6 @@ pipeline {
         stage('Parse docker-compose.yml') {
             steps {
                 script {
-                    // Biến mảng chỉ khai báo trong script
                     def IMAGE_NAMES = sh(script: "docker-compose config | grep image: | awk '{print \$2}'", returnStdout: true)
                                         .trim()
                                         .split('\n')
@@ -45,7 +44,6 @@ pipeline {
             steps {
                 dir("${env.WORKSPACE}") {
                     script {
-                        // Giả sử chỉ có 2 image: client và server
                         sh "docker build -t oidc-client-${BRANCH_SUFFIX} -f Dockerfile.client ."
                         sh "docker build -t oidc-server-${BRANCH_SUFFIX} -f Dockerfile.server ."
                     }
