@@ -1,20 +1,20 @@
-version: "3.9"
-
 services:
   oidc-server:
-    image: oidc-server-${BRANCH_NAME_SAFE}
+    image: oidc-server-fix_fix-cicd-v2:latest
+    container_name: oidc-server
+    ports:
+      - "80:80"
     networks:
       - branch_net
-    environment:
-      ASPNETCORE_URLS: http://+:80
 
   oidc-client:
-    image: oidc-client-${BRANCH_NAME_SAFE}
-    networks:
-      - branch_net
+    image: oidc-client-fix_fix-cicd-v2:latest
+    container_name: oidc-client
     depends_on:
       - oidc-server
+    networks:
+      - branch_net
 
 networks:
   branch_net:
-    external: true
+    driver: bridge

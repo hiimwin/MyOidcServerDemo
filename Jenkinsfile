@@ -35,26 +35,34 @@ pipeline {
         }
 
         stage('Start Containers for Test') {
-            steps {
-                script {
-                    sh "docker network create ${NETWORK_NAME} || true"
-                    sh "docker-compose -f ${COMPOSE_FILE} up -d"
-                    // Chờ container khởi động
-                    sh "sleep 5"
-                }
-            }
-        }
+    steps {
+        script {
+            // tạo network an toàn (nếu chưa có)
+            sh "docker network create net-fix_fix-cicd-v2 || true"
+            
+            // chạy docker-compose, up các service
+            sh "docker-compose -f docker-compose.branch.yml up -d"
 
-        stage('Smoke Test Containers') {
-            steps {
-                script {
-                    echo "Running basic smoke tests..."
-                    // Chạy curl từ một container riêng trong cùng network
-                    sh """docker run --rm --network ${NETWORK_NAME} curlimages/curl:latest \
-                        -f http://oidc-server:80/.well-known/openid-configuration"""
-                }
-            }
+            // chờ container server sẵn sàng
+            echo "Waiting for server to be ready..."
+            sh "sleep 10"
         }
+    }
+}
+
+stage('Smoke Test Containers') {
+    steps {
+        script {
+            echo "Running basic smoke tests..."
+
+            // dùng network của docker-compose
+            sh """
+            docker run --rm --network emo-multi-branch_fix_fix-cicd-v2_branch_net \\
+                curlimages/curl:latest -f http://oidc-server:80/.well-known/openid-configuration
+            """
+        }
+    }
+}
     }
 
     post {
