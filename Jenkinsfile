@@ -2,8 +2,7 @@ pipeline {
     agent any
 
     environment {
-        // Safe branch suffix: chỉ chữ + số + '_', tối đa 63 ký tự
-        BRANCH_SUFFIX = "${env.BRANCH_NAME.replaceAll(/[^a-zA-Z0-9]/, '_')}"
+        BRANCH_SUFFIX = "${env.BRANCH_NAME.replaceAll('/', '_')}"
     }
 
     stages {
@@ -52,21 +51,26 @@ pipeline {
             }
         }
 
+        stage('Create Network') {
+            steps {
+                script {
+                    def networkName = "myoidc_${BRANCH_SUFFIX}"
+                    if (networkName.length() > 63) {
+                        networkName = networkName[0..62]
+                    }
+                    sh "docker network create ${networkName} || true"
+                }
+            }
+        }
+
         stage('Start Containers for Test') {
             steps {
                 script {
-                    // Tạo network an toàn
                     def networkName = "myoidc_${BRANCH_SUFFIX}"
-                    if(networkName.length() > 63) {
-                        networkName = networkName.substring(0,63)
+                    if (networkName.length() > 63) {
+                        networkName = networkName[0..62]
                     }
-                    sh "docker network create ${networkName} || true"
-
-                    // Export network để docker-compose dùng
-                    withEnv(["BRANCH_SUFFIX=${BRANCH_SUFFIX}"]) {
-                        sh "docker-compose -f docker-compose.yml up -d"
-                    }
-
+                    sh "docker-compose -f docker-compose.yml up -d"
                     sh "sleep 5"
                 }
             }
@@ -77,10 +81,12 @@ pipeline {
                 script {
                     echo "Running basic smoke tests..."
                     def networkName = "myoidc_${BRANCH_SUFFIX}"
-                    if(networkName.length() > 63) {
-                        networkName = networkName.substring(0,63)
+                    if (networkName.length() > 63) {
+                        networkName = networkName[0..62]
                     }
-                    sh "docker run --rm --network ${networkName} curlimages/curl:latest -f http://oidc-server:80/.well-known/openid-configuration"
+                    sh """
+                    docker run --rm --network ${networkName} curlimages/curl:latest -f http://oidc-server:80/.well-known/openid-configuration
+                    """
                 }
             }
         }
@@ -91,11 +97,13 @@ pipeline {
             dir("${env.WORKSPACE}") {
                 echo "Cleaning up containers, network, and dangling images..."
                 sh "docker-compose -f docker-compose.yml down -v"
-                def networkName = "myoidc_${BRANCH_SUFFIX}"
-                if(networkName.length() > 63) {
-                    networkName = networkName.substring(0,63)
+                script {
+                    def networkName = "myoidc_${BRANCH_SUFFIX}"
+                    if (networkName.length() > 63) {
+                        networkName = networkName[0..62]
+                    }
+                    sh "docker network rm ${networkName} || true"
                 }
-                sh "docker network rm ${networkName} || true"
                 sh "docker system prune -f"
             }
         }
