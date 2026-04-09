@@ -41,10 +41,10 @@ namespace OidcWebClient
                 options.Authority = builder.Configuration["OpenIDConnectSettings:Authority"];
                 options.ClientId = builder.Configuration["OpenIDConnectSettings:ClientId"];
                 options.ClientSecret = builder.Configuration["OpenIDConnectSettings:ClientSecret"];
+                options.MetadataAddress = builder.Configuration["OpenIDConnectSettings:MetadataAddress"];
                 options.ResponseType = OpenIdConnectResponseType.Code;
                 options.SaveTokens = true;
                 options.RequireHttpsMetadata = false;
-
                 options.TokenValidationParameters.ValidateIssuerSigningKey = false;
                 options.TokenValidationParameters.SignatureValidator = delegate (string token, TokenValidationParameters validationParameters)
                 {

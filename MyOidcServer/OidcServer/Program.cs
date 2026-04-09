@@ -64,9 +64,29 @@ namespace OidcServer
             app.UseCors();
             app.UseAuthorization();
 
-            app.MapGet("/.well-known/openid-configuration",
-                () => Results.File(Path.Combine(builder.Environment.ContentRootPath, "OidcDiscovery", "openid-configuration.json"), contentType: "application/json")
-            );
+            app.MapGet("/.well-known/openid-configuration", () =>
+            {
+                var env = builder.Environment.EnvironmentName;
+                var fileName = $"openid-configuration.{env}.json";
+
+                var path = Path.Combine(
+                    builder.Environment.ContentRootPath,
+                    "OidcDiscovery",
+                    fileName
+                );
+
+                // fallback nếu không có file env
+                if (!File.Exists(path))
+                {
+                    path = Path.Combine(
+                        builder.Environment.ContentRootPath,
+                        "OidcDiscovery",
+                        "openid-configuration.json"
+                    );
+                }
+
+                return Results.File(path, contentType: "application/json");
+            });
 
             app.MapGet("/.well-known/jwks.json",
                 () => Results.File(Path.Combine(builder.Environment.ContentRootPath, "OidcDiscovery", "jwks.json"), contentType: "application/json")

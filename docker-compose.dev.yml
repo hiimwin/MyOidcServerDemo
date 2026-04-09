@@ -1,0 +1,24 @@
+services:
+  oidc-server:
+    container_name: server
+    image: oidc-server-dev
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    ports:
+      - "5000:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Docker
+
+  oidc-client:
+    container_name: client
+    image: oidc-client-dev
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    ports:
+      - "5001:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Docker
+    extra_hosts:
+      - "localhost:host-gateway"

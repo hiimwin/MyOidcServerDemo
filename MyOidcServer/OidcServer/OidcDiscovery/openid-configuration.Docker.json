@@ -1,0 +1,13 @@
+{
+  "issuer": "http://localhost:5000",
+  "authorization_endpoint": "http://localhost:5000/authorize",
+  "token_endpoint": "http://localhost:5000/oauth/token",
+  "userinfo_endpoint": "http://localhost:5000/userinfo",
+  "jwks_uri": "http://localhost:5000/.well-known/jwks.json",
+  "scopes_supported": [
+    "openid",
+    "profile",
+    "email",
+    "email_verified"
+  ]
+}

@@ -10,6 +10,8 @@ services:
       - branch_net-BRANCH_SUFFIX
     ports:
       - "5001:80"
+    extra_hosts:
+      - "localhost:host-gateway"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - OIDC_SERVER_URL=http://oidc-server-BRANCH_SUFFIX:5000
