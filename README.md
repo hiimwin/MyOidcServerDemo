@@ -1,141 +1,170 @@
-📌 MyOidcServerDemo
+**📌 MY OIDC SERVER DEMO**
 
-This project is a simple demo to understand how OpenID Connect (OIDC) works internally, combined with CI/CD automation using Jenkins and Docker.
+A simple learning project to understand how OpenID Connect (OIDC) works internally, combined with basic CI/CD automation using Jenkins and Docker.
 
-⚠️ Important:
-This is a learning project only.
-It is intentionally not using Clean Architecture or full SOLID design.
-The goal is to:
+**⚠️ IMPORTANT**
+
+This is a **LEARNING PROJECT ONLY.**
+
+❌ Not production-ready
+❌ Not using Clean Architecture
+❌ Not fully following SOLID
+
+👉 The purpose is to:
 
 Understand OIDC flow step-by-step
-Practice CI/CD automation
-Learn Docker containerization
-🎯 Objectives
+Learn how authentication works internally
+Practice basic CI/CD automation
+Get familiar with Docker workflow
+
+**🎯 OBJECTIVES**
 
 This project helps you:
 
 🔐 Understand OIDC Authentication Flow
-🔄 Simulate login & token flow manually
-🍪 Understand cookie-based session handling
+🔄 Simulate login & authentication manually
+🍪 Learn cookie-based session handling
 ⚙️ Practice:
-Jenkins pipeline
-Docker build & run
-CI/CD automation
-🏗️ Project Structure
+Jenkins Pipeline
+Docker build process
+Basic CI/CD flow
+
+**🏗️ PROJECT STRUCTURE**
 MyOdicServer/
  ├── OidcServer/        # OIDC Provider (Auth Server)
- ├── OidcWebClient/     # Client (Web App)
- ├── MyOdicServer.slnx  # Solution file
+ ├── OidcWebClient/     # Web Client
+
+ ├── MyOdicServer.slnx
 
  ├── Dockerfile.server
  ├── Dockerfile.client
+
  ├── docker-compose.yml
  ├── docker-compose.dev.yml
 
  ├── Jenkinsfile        # CI/CD pipeline
  ├── README.md
-🔄 Application Behavior
-🧑‍💻 Login Flow
+ 
+**🔄 APPLICATION BEHAVIOR**
+🧑‍💻 LOGIN FLOW
 User opens Web Client
 User enters a username
 System checks:
-✅ If username matches hardcoded value → continue OIDC flow
-❌ If not → return "User not found"
-🔐 Authentication Process
-If valid user:
+✅ Correct (hardcoded user) → Continue OIDC flow
+❌ Incorrect → Return "User not found"
+
+**🔐 AUTHENTICATION PROCESS**
+
+If user is valid:
+
 Redirect to OIDC Server
-Server authenticates user
-Issue authentication result
-Redirect back to client
-👤 After Login
-User is redirected to Profile page
-System stores session using cookies
-🍪 Cookie Behavior
-If user does not logout → session persists
-If user logs out:
-Cookies are cleared
-Session is removed
-🚀 Run Locally
-1. Clone project
+Server handles authentication
+Return result to client
+Client receives authentication response
+
+**👤 AFTER LOGIN**
+
+Redirect to Profile page
+Session is stored using cookies
+
+**🍪 COOKIE BEHAVIOR**
+
+✅ Not logout → Session persists
+🔓 Logout → Cookies cleared → Session removed
+🚀 RUN LOCALLY
+1️⃣ Clone project
 git clone https://github.com/hiimwin/MyOidcServerDemo.git
 cd MyOidcServerDemo
-2. Run Server
+2️⃣ Run OIDC Server
 cd MyOdicServer/OidcServer
 dotnet run
-3. Run Client
+3️⃣ Run Client
 cd MyOdicServer/OidcWebClient
 dotnet run
-4. Test
-Open client app
+4️⃣ Test Flow
+Open Web Client
 Enter username:
-✅ Correct → login success
+✅ Correct → Login success
 ❌ Wrong → "User not found"
 After login:
-Access profile
+Access Profile
 Logout to clear cookies
-🐳 Docker Setup
 
-Build & run with Docker:
+**🐳 DOCKER SETUP**
+
+Run with Docker:
 
 docker-compose -f docker-compose.dev.yml up --build
 
-Includes:
+**⚠️ DOCKER BEHAVIOR (IMPORTANT)**
 
-OIDC Server container
-Web Client container
-⚙️ CI/CD with Jenkins
+✅ Docker will:
+Build images
+Run containers for testing
+❌ Docker will NOT automatically remove images
+🧹 Containers:
+Can be stopped/removed after testing
 
-This project includes a Jenkins pipeline to automate:
+👉 Images are kept intentionally so you can:
 
-🔁 Pipeline Flow
+Run containers manually later
+Debug or test independently
+⚙️ CI/CD WITH JENKINS
+
+This project includes a basic Jenkins pipeline for automation.
+
+**🔁 PIPELINE FLOW**
+
 Pull source code from GitHub
 Build .NET project
 Build Docker images:
 Server image
 Client image
-Run containers
-Deploy updated version
-📄 Jenkinsfile Purpose
-
-The Jenkinsfile is used to:
-
+Run test containers
+Stop/remove containers after testing
+📄 JENKINSFILE PURPOSE
 Automate build process
-Integrate with Docker
-Enable continuous deployment
-❗ Limitations
+Integrate Docker workflow
+Simulate basic CI/CD pipeline
 
-This project does NOT include:
+👉 This is basic level CI/CD for learning, not production setup.
+
+**❗ LIMITATIONS**
+
+This project intentionally does NOT include:
 
 Clean Architecture
-Full SOLID principles
+Full SOLID design
 Database (uses hardcoded user)
 Advanced OIDC features:
 PKCE
 Refresh Token
-Role/Claim management
-Production-level security
-💡 Why This Project Exists
+Role/Claim system
+Production security
 
-This project is designed to:
+**💡 WHY THIS PROJECT EXISTS**
 
-👉 Learn by building from scratch instead of using libraries
+Instead of using ready-made libraries, this project:
 
-It helps you:
+👉 Rebuilds OIDC flow manually
 
-Understand OIDC flow deeply
-See how authentication really works
-Practice real-world DevOps workflow (CI/CD)
-🚀 Future Improvements
+So you can:
+
+Understand authentication deeply
+See what happens behind the scenes
+Practice DevOps basics (CI/CD + Docker)
+
+**🚀 FUTURE IMPROVEMENTS (OPTIONAL)**
 Replace hardcoded user with database
 Add JWT token handling
 Implement PKCE
 Apply Clean Architecture
 Deploy to cloud (AWS / Azure)
 
-⭐ Final Note
+**⭐ FINAL NOTE**
 
 This project is best used as:
 
-🧪 Learning OIDC playground
+🧪 OIDC learning playground
 ⚙️ CI/CD practice project
 🐳 Docker hands-on demo
